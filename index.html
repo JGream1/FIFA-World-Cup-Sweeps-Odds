@@ -210,6 +210,15 @@
           if (!teamProb[team]) continue;
           personProb[owner] = (personProb[owner] || 0) + teamProb[team];
         }
+        
+        // Determine each person's best remaining team
+        const bestTeam = {};
+        for (const [team, owner] of Object.entries(teamOwners)) {
+          if (!teamProb[team]) continue;
+          if (!bestTeam[owner] || teamProb[team] > teamProb[bestTeam[owner]]) {
+            bestTeam[owner] = team;
+          }
+        }
   
         /* ============================
            SORT RESULTS
@@ -222,18 +231,30 @@
            BUILD TABLE
         ============================ */
         let html = `
-          <table border="1" cellpadding="6" style="border-collapse: collapse; margin-top: 20px;">
-            <tr><th>Person</th><th>Chance of Winning</th></tr>
+          <table>
+            <tr>
+              <th>Person</th>
+              <th>Chance of Winning</th>
+              <th>Best Chance</th>
+            </tr>
         `;
-  
+        
         for (const row of sorted) {
+          const team = bestTeam[row.name];
+          const code = getFlagCode(team);
+          const flag = code
+            ? `<img src="https://flagcdn.com/48x36/${code}.png" style="width:32px; border-radius:4px;">`
+            : "";
+        
           html += `
             <tr>
               <td>${row.name}</td>
               <td>${(row.prob * 100).toFixed(2)}%</td>
-            </tr>`;
+              <td>${flag} ${team}</td>
+            </tr>
+          `;
         }
-  
+        
         html += "</table>";
         container.innerHTML = html;
   
@@ -241,7 +262,59 @@
         container.textContent = "Error loading odds: " + err;
       }
     }
-  
+
+    // Convert team name → ISO country code for flag CDN
+    function getFlagCode(team) {
+      const map = {
+        "France": "fr",
+        "Spain": "es",
+        "Argentina": "ar",
+        "England": "gb",
+        "Portugal": "pt",
+        "Brazil": "br",
+        "Netherlands": "nl",
+        "Morocco": "ma",
+        "Belgium": "be",
+        "Germany": "de",
+        "Croatia": "hr",
+        "Colombia": "co",
+        "Senegal": "sn",
+        "Mexico": "mx",
+        "USA": "us",
+        "Uruguay": "uy",
+        "Japan": "jp",
+        "Switzerland": "ch",
+        "Iran": "ir",
+        "Turkey": "tr",
+        "Ecuador": "ec",
+        "Austria": "at",
+        "South Korea": "kr",
+        "Australia": "au",
+        "Algeria": "dz",
+        "Egypt": "eg",
+        "Canada": "ca",
+        "Norway": "no",
+        "Panama": "pa",
+        "Ivory Coast": "ci",
+        "Sweden": "se",
+        "Paraguay": "py",
+        "Czech Republic": "cz",
+        "Scotland": "gb",
+        "Tunisia": "tn",
+        "DR Congo": "cd",
+        "Uzbekistan": "uz",
+        "Qatar": "qa",
+        "Iraq": "iq",
+        "South Africa": "za",
+        "Saudi Arabia": "sa",
+        "Jordan": "jo",
+        "Bosnia & Herzegovina": "ba",
+        "Cape Verde": "cv",
+        "Ghana": "gh"
+      };
+      return map[team] || null;
+    }
+    
     loadOdds();
   </script>
 </body>
