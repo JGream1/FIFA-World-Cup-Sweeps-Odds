@@ -5,25 +5,141 @@
   <title>World Cup Odds</title>
 </head>
 <body>
-  <h1>World Cup Odds</h1>
+  <h1>World Cup Sweepstakes Odds</h1>
   <pre id="output">Loading…</pre>
+  <div id="results"></div>
 
   <script>
+    const teamOwners = {
+      "France": "Bristow",
+      "Spain": "Will",
+      "Argentina": "Ant",
+      "England": "Kerrod",
+      "Portugal": "Tom",
+      "Brazil": "Marra",
+      "Netherlands": "Jaiden",
+      "Morocco": "Jacob",
+      "Belgium": "Kirrin",
+      "Germany": "Jacob",
+      "Croatia": "Marra",
+      "Colombia": "Kerrod",
+      "Senegal": "Tom",
+      "Mexico": "Kirrin",
+      "USA": "Ant",
+      "Uruguay": "Bristow",
+      "Japan": "Jacob",
+      "Switzerland": "Jaiden",
+      "Iran": "Will",
+      "Turkey": "Kerrod",
+      "Ecuador": "Tom",
+      "Austria": "Marra",
+      "South Korea": "Jaiden",
+      "Australia": "Kerrod",
+      "Algeria": "Ant",
+      "Egypt": "Marra",
+      "Canada": "Kirrin",
+      "Norway": "Jacob",
+      "Panama": "Kirrin",
+      "Ivory Coast": "Ant",
+      "Sweden": "Bristow",
+      "Paraguay": "Tom",
+      "Czechia": "Will",
+      "Scotland": "Jaiden",
+      "Tunisia": "Ant",
+      "DR Congo": "Will",
+      "Uzbekistan": "Bristow",
+      "Qatar": "Bristow",
+      "Iraq": "Kirrin",
+      "South Africa": "Will",
+      "Saudi Arabia": "Jaiden",
+      "Jordan": "Marra",
+      "Bosnia & Herzegovina": "Kerrod",
+      "Cape Verde": "Tom",
+      "Ghana": "Jacob"
+    };
+  
+    const excludedTeams = ["Curacao", "Haiti", "New Zealand"];
+
     const API_KEY = '4644152e5c15b57e158b3307680b59d6';
-
     const ENDPOINT = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds?regions=au&markets=outrights&apiKey=${API_KEY}`;
-
+    
     async function loadOdds() {
-      const out = document.getElementById('output');
+      const container = document.getElementById("results");
+      container.textContent = "Loading…";
+    
       try {
         const res = await fetch(ENDPOINT);
         const data = await res.json();
-        out.textContent = JSON.stringify(data, null, 2);
+    
+        // Find Sportsbet bookmaker
+        const sb = data.find(book => book.bookmakers?.some(b => b.key.includes("sportsbet")));
+        if (!sb) {
+          container.textContent = "Sportsbet odds not found.";
+          return;
+        }
+    
+        const sportsbet = sb.bookmakers.find(b => b.key.includes("sportsbet"));
+        const market = sportsbet.markets[0];
+    
+        // Extract team odds
+        const teamOdds = {};
+        for (const o of market.outcomes) {
+          teamOdds[o.name] = o.price;
+        }
+    
+        // Compute implied probabilities (excluding bottom 3)
+        const includedTeams = Object.keys(teamOwners);
+        const implied = {};
+    
+        let denom = 0;
+        for (const team of includedTeams) {
+          const odds = teamOdds[team];
+          if (!odds) continue;
+          const inv = 1 / odds;
+          implied[team] = inv;
+          denom += inv;
+        }
+    
+        // Normalised team probabilities
+        const teamProb = {};
+        for (const team of includedTeams) {
+          if (implied[team]) {
+            teamProb[team] = implied[team] / denom;
+          }
+        }
+    
+        // Aggregate per person
+        const personProb = {};
+        for (const [team, owner] of Object.entries(teamOwners)) {
+          if (!teamProb[team]) continue;
+          personProb[owner] = (personProb[owner] || 0) + teamProb[team];
+        }
+    
+        // Convert to sorted array
+        const sorted = Object.entries(personProb)
+          .map(([name, prob]) => ({ name, prob }))
+          .sort((a, b) => b.prob - a.prob);
+    
+        // Build table
+        let html = `
+          <table>
+            <tr><th>Person</th><th>Chance of Winning</th></tr>
+        `;
+        for (const row of sorted) {
+          html += `<tr>
+            <td>${row.name}</td>
+            <td>${(row.prob * 100).toFixed(2)}%</td>
+          </tr>`;
+        }
+        html += "</table>";
+    
+        container.innerHTML = html;
+    
       } catch (err) {
-        out.textContent = 'Error: ' + err;
+        container.textContent = "Error loading odds: " + err;
       }
     }
-
+    
     loadOdds();
   </script>
 </body>
