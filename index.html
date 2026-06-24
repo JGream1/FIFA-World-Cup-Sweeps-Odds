@@ -240,23 +240,32 @@
         `;
         
         for (const row of sorted) {
-          const team = bestTeam[row.name];
-          const code = getFlagCode(team);
-          const flag = code
-            ? `<img src="https://flagcdn.com/48x36/${code}.png" style="width:32px; border-radius:4px;">`
-            : "";
-        
-          html += `
-            <tr>
-              <td>${row.name}</td>
-              <td>${(row.prob * 100).toFixed(2)}%</td>
-              <td>${flag} ${team}</td>
-            </tr>
-          `;
-        }
-        
-        html += "</table>";
-        container.innerHTML = html;
+            const team = bestTeam[row.name];
+            const code = getFlagCode(team);
+          
+            let flag = "";
+          
+            if (code === "ENGLAND_FLAG") {
+              flag = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/40px-Flag_of_England.svg.png" style="width:32px; border-radius:4px;">`;
+            } 
+            else if (code === "SCOTLAND_FLAG") {
+              flag = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Flag_of_Scotland.svg/40px-Flag_of_Scotland.svg.png" style="width:32px; border-radius:4px;">`;
+            }
+            else if (code) {
+              flag = `<img src="https://flagcdn.com/48x36/${code}.png" style="width:32px; border-radius:4px;">`;
+            }
+          
+            html += `
+              <tr>
+                <td>${row.name}</td>
+                <td>${(row.prob * 100).toFixed(2)}%</td>
+                <td>${flag} ${team}</td>
+              </tr>
+            `;
+          }
+          
+          html += "</table>";
+          container.innerHTML = html;
   
       } catch (err) {
         container.textContent = "Error loading odds: " + err;
@@ -269,7 +278,7 @@
         "France": "fr",
         "Spain": "es",
         "Argentina": "ar",
-        "England": "en",
+        "England": "ENGLAND_FLAG", // Special case
         "Portugal": "pt",
         "Brazil": "br",
         "Netherlands": "nl",
@@ -299,7 +308,7 @@
         "Sweden": "se",
         "Paraguay": "py",
         "Czech Republic": "cz",
-        "Scotland": "gb",
+        "Scotland": "SCOTLAND_FLAG", // Special case
         "Tunisia": "tn",
         "DR Congo": "cd",
         "Uzbekistan": "uz",
