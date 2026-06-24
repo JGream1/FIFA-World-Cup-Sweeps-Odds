@@ -1,4 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>World Cup Odds</title>
+</head>
+<body>
+  <h1>World Cup Odds</h1>
+  <pre id="output">Loading…</pre>
 
-const API_KEY = '4644152e5c15b57e158b3307680b59d6';
+  <script>
+    const API_KEY = '4644152e5c15b57e158b3307680b59d6';
 
-const ENDPOINT = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds?regions=au&markets=outrights&apiKey=${4644152e5c15b57e158b3307680b59d6}`;
+    const ENDPOINT = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds?regions=au&markets=outrights&apiKey=${API_KEY}`;
+
+    async function loadOdds() {
+      const out = document.getElementById('output');
+      try {
+        const res = await fetch(ENDPOINT);
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        out.textContent = 'Error: ' + err;
+      }
+    }
+
+    loadOdds();
+  </script>
+</body>
+</html>
