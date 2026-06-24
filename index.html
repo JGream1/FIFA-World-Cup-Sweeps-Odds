@@ -10,6 +10,9 @@
   <div id="results"></div>
 
   <script>
+    /* ============================
+       TEAM → OWNER MAPPING
+    ============================ */
     const teamOwners = {
       "France": "Bristow",
       "Spain": "Will",
@@ -43,7 +46,7 @@
       "Ivory Coast": "Ant",
       "Sweden": "Bristow",
       "Paraguay": "Tom",
-      "Czechia": "Will",
+      "Czech Republic": "Will",   // FIXED NAME
       "Scotland": "Jaiden",
       "Tunisia": "Ant",
       "DR Congo": "Will",
@@ -58,24 +61,129 @@
       "Ghana": "Jacob"
     };
   
-    const excludedTeams = ["Curacao", "Haiti", "New Zealand"];
-
+    /* Bottom 3 teams excluded from probability pool */
+    const excludedTeams = ["Curaçao", "Haiti", "New Zealand"]; // FIXED NAME
+  
+    /* ============================
+       API CONFIG
+    ============================ */
     const API_KEY = '4644152e5c15b57e158b3307680b59d6';
-    const ENDPOINT = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds?regions=au&markets=outrights&apiKey=${API_KEY}`;
-
+    const ENDPOINT =
+      `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds?regions=au&markets=outrights&apiKey=${API_KEY}`;
+  
+    /* ============================
+       MAIN FUNCTION
+    ============================ */
     async function loadOdds() {
       const container = document.getElementById("results");
       container.textContent = "Loading…";
-    
+  
       try {
         const res = await fetch(ENDPOINT);
         const data = await res.json();
-        container.textContent = JSON.stringify(data, null, 2);
+  
+        if (!data.length) {
+          container.textContent = "No odds data returned.";
+          return;
+        }
+  
+        const bookmakers = data[0].bookmakers;
+  
+        /* ============================
+           BOOKMAKER PRIORITY:
+           1. TAB
+           2. Unibet
+           3. Betfair
+        ============================ */
+        let bookmaker =
+          bookmakers.find(b => b.key === "tab") ||
+          bookmakers.find(b => b.key === "unibet") ||
+          bookmakers.find(b => b.key.includes("betfair")) ||
+          null;
+  
+        if (!bookmaker) {
+          container.textContent = "No usable bookmaker found.";
+          return;
+        }
+  
+        const market = bookmaker.markets.find(m => m.key === "outrights");
+        if (!market) {
+          container.textContent = "Outrights market not found.";
+          return;
+        }
+  
+        /* ============================
+           EXTRACT TEAM ODDS
+        ============================ */
+        const teamOdds = {};
+        for (const o of market.outcomes) {
+          teamOdds[o.name] = o.price;
+        }
+  
+        /* ============================
+           COMPUTE IMPLIED PROBABILITIES
+        ============================ */
+        const includedTeams = Object.keys(teamOwners)
+          .filter(t => !excludedTeams.includes(t));
+  
+        const implied = {};
+        let denom = 0;
+  
+        for (const team of includedTeams) {
+          const odds = teamOdds[team];
+          if (!odds) continue;
+          const inv = 1 / odds;
+          implied[team] = inv;
+          denom += inv;
+        }
+  
+        const teamProb = {};
+        for (const team of includedTeams) {
+          if (implied[team]) {
+            teamProb[team] = implied[team] / denom;
+          }
+        }
+  
+        /* ============================
+           AGGREGATE PER PERSON
+        ============================ */
+        const personProb = {};
+        for (const [team, owner] of Object.entries(teamOwners)) {
+          if (!teamProb[team]) continue;
+          personProb[owner] = (personProb[owner] || 0) + teamProb[team];
+        }
+  
+        /* ============================
+           SORT RESULTS
+        ============================ */
+        const sorted = Object.entries(personProb)
+          .map(([name, prob]) => ({ name, prob }))
+          .sort((a, b) => b.prob - a.prob);
+  
+        /* ============================
+           BUILD TABLE
+        ============================ */
+        let html = `
+          <table border="1" cellpadding="6" style="border-collapse: collapse; margin-top: 20px;">
+            <tr><th>Person</th><th>Chance of Winning</th></tr>
+        `;
+  
+        for (const row of sorted) {
+          html += `
+            <tr>
+              <td>${row.name}</td>
+              <td>${(row.prob * 100).toFixed(2)}%</td>
+            </tr>`;
+        }
+  
+        html += "</table>";
+        container.innerHTML = html;
+  
       } catch (err) {
-        container.textContent = "Error: " + err;
+        container.textContent = "Error loading odds: " + err;
       }
     }
-    
+  
     loadOdds();
   </script>
 </body>
