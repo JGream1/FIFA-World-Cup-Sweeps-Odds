@@ -236,8 +236,17 @@
               <th>Lad</th>
               <th>Winning Chances</th>
               <th>Best Hope</th>
+              <th>Teams Left</th>
             </tr>
         `;
+
+        // Count remaining teams per owner
+        const teamsRemaining = {};
+        for (const [team, owner] of Object.entries(teamOwners)) {
+          if (teamProb[team]) {
+            teamsRemaining[owner] = (teamsRemaining[owner] || 0) + 1;
+          }
+        }
         
         for (const row of sorted) {
             const team = bestTeam[row.name];
@@ -260,6 +269,7 @@
                 <td>${row.name}</td>
                 <td>${(row.prob * 100).toFixed(2)}%</td>
                 <td>${flag} ${team}</td>
+                <td>${teamsRemaining[row.name] || 0}</td>
               </tr>
             `;
           }
