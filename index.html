@@ -212,11 +212,20 @@
         }
         
         // Determine each person's best remaining team
-        const bestTeam = {};
+        const bestTeams = {};
         for (const [team, owner] of Object.entries(teamOwners)) {
           if (!teamProb[team]) continue;
-          if (!bestTeam[owner] || teamProb[team] > teamProb[bestTeam[owner]]) {
-            bestTeam[owner] = team;
+          const prob = teamProb[team];
+          
+          if (!bestTeams[owner]) {
+            bestTeams[owner] = [team];
+          } else {
+            const currentBestProb = teamProb[bestTeams[owner][0]];
+            if (prob > currentBestProb) {
+              bestTeams[owner] = [team];
+            } else if (prob === currentBestProb) {
+              bestTeams[owner].push(team);
+            }
           }
         }
   
@@ -234,7 +243,7 @@
           <table>
             <tr>
               <th>Lad</th>
-              <th>Winning Chances</th>
+              <th>Win Chance</th>
               <th>Best Hope</th>
               <th>Teams Left</th>
             </tr>
@@ -268,7 +277,24 @@
               <tr>
                 <td>${row.name}</td>
                 <td>${(row.prob * 100).toFixed(2)}%</td>
-                <td>${flag} ${team}</td>
+                <td>
+                  ${bestTeams[row.name].map(t => {
+                      const code = getFlagCode(t);
+                      let flag = "";
+                
+                      if (code === "ENGLAND_FLAG") {
+                        flag = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/40px-Flag_of_England.svg.png" style="width:32px; border-radius:4px;">`;
+                      } 
+                      else if (code === "SCOTLAND_FLAG") {
+                        flag = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Flag_of_Scotland.svg/40px-Flag_of_Scotland.svg.png" style="width:32px; border-radius:4px;">`;
+                      }
+                      else if (code) {
+                        flag = `<img src="https://flagcdn.com/48x36/${code}.png" style="width:32px; border-radius:4px;">`;
+                      }
+                
+                      return `${flag} ${t}`;
+                  }).join("<br>")}
+                </td>
                 <td>${teamsRemaining[row.name] || 0}</td>
               </tr>
             `;
